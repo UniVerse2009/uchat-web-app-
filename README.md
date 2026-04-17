@@ -144,7 +144,7 @@ Prerequisites
 
 Installation
 
-git clone https://github.com/your-username/uchat.git
+git clone https://github.com/UniVerse2009/uchat-web-app-.git
 cd uchat
 
 npm install
