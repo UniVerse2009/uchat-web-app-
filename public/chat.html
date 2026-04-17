@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=Edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HTML</title>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <link rel="stylesheet" href="chat.css">
+  <link rel="icon" href="data:,">
+</head>
+
+<body>
+  <div class="main">
+    <button id="plus">
+      +
+    </button>
+    <div class="overlay" id="overlay">
+      <div class="popup">
+        <h3>Enter username</h3>
+         <input type="text" placeholder="Username">
+        <button id="submitCreateChat">Submit</button>
+       </div>
+      </div>
+      
+    <div class="chatlist-navbar" id="chatlist-navbar">
+  <div class="app-logo">UChat</div>
+  <button id="logoutBtn" class="nav-logout-btn">
+    ⎋
+  </button>
+</div>
+    
+    <div class="chat-list" id="chatList"></div>
+    <div class="chat-view" id="chatView">
+      <div class="chat-header">
+        <button id="backBtn">←</button>
+			  <span id="chatTitle">Pilih chat</span>
+      </div>
+      <div class="chat-messages" id="chatMessage">
+        <p class="placeholder">Pilih chat untuk mulai</p>
+      </div>
+      
+      <div class="chat-input">
+        <input type="text" placeholder="Tulis pesan..." id="chatInput">
+        <button id="sendBtn">Kirim</button>
+      </div>
+    </div>
+  </div>
+  <script src="chat.js"></script>
+</body>
+</html>

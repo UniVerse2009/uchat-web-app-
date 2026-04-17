@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Authentication</title>
+	<link rel="stylesheet" href="login.css">
+	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+	<link rel="icon" href="data:,">
+</head>
+<body>
+
+	<div class="auth-container">
+
+		<div class="auth-card">
+
+			<img src="logo.png" class="logo" alt="Logo">
+
+			<h2 id="form-title">Login</h2>
+
+			<form id="auth-form">
+
+				<div class="input-group">
+					<label>Username</label>
+					<input type="text" id="username" placeholder="Masukkan username" required>
+				</div>
+
+				<div class="input-group">
+					<label>Password</label>
+					<input type="password" id="password" placeholder="Masukkan password" required>
+				</div>
+
+				<div id="error-message" class="error hidden">
+					Username atau password salah
+				</div>
+
+				<button type="submit" id="submit-btn">Masuk</button>
+
+			</form>
+
+			<p class="switch-text">
+				Belum punya akun?
+				<span id="switch-mode">Daftar</span>
+			</p>
+
+		</div>
+
+	</div>
+
+	<script src="login.js"></script>
+</body>
+</html>

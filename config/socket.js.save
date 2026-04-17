@@ -1,0 +1,75 @@
+const { Server } = require('socket.io');
+const chatRepo = require('../repositories/chat.repo');
+
+module.exports = function initSocket(server, sessionMiddleware) {
+
+	const io = new Server(server, {
+		cors: {
+			origin: true,
+			credentials: true
+		}
+	});
+
+	// Share express-session ke socket
+	io.use((socket, next) => {
+		sessionMiddleware(socket.request, {}, next);
+	});
+
+	io.use((socket, next) => {
+		const session = socket.request.session;
+
+		if (!session || !session.userId) {
+			return next(new Error('Unauthorized'));
+		}
+
+		socket.userId = session.userId;
+		next();
+	});
+
+	io.on('connection', (socket) => {
+
+		console.log('User connected:', socket.userId);
+
+		/* =========================
+		   JOIN CHAT ROOM
+		========================= */
+		socket.on('chat:join', async (chatId) => {
+			const isMember = await chatRepo.isParticipant(chatId, socket.userId);
+			if (!isMember) return;
+
+			socket.join(`chat_${chatId}`);
+		});
+
+		/* =========================
+		   LEAVE CHAT ROOM
+		========================= */
+		socket.on('chat:leave', (chatId) => {
+			socket.leave(`chat_${chatId}`);
+		});
+
+		/* =========================
+		   TYPING INDICATOR
+		========================= */
+		socket.on('chat:typing', (chatId) => {
+			socket.to(`chat_${chatId}`).emit('chat:typing', {
+				chatId,
+				userId: socket.userId
+			});
+		});
+
+		/* =========================
+		   STOP TYPING
+		========================= */
+		socket.on('chat:stopTyping', (chatId) => {
+			socket.to(`chat_${chatId}`).emit('chat:stopTyping', {
+				chatId,
+				userId: socket.userId
+			});
+		});
+		socket.on('disconnect', () => {
+			console.log('User disconnected:', socket.userId);
+		});
+	});
+
+	return io;
+};
