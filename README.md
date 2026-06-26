@@ -1,6 +1,6 @@
 # UChat — Real-Time Chat Application
 
-A full-stack real-time messaging application built with Node.js, Express, MySQL, and Socket.IO. Supports peer-to-peer (P2P) chat rooms with live event broadcasting, session-based authentication, and a layered server architecture.
+A full-stack real-time messaging application built with Node.js, Express, PostgreSQL, and Socket.IO. Supports peer-to-peer (P2P) chat rooms with live event broadcasting, session-based authentication, and a layered server architecture.
 
 ---
 
@@ -11,9 +11,13 @@ A full-stack real-time messaging application built with Node.js, Express, MySQL,
 - [Tech Stack](#tech-stack)
 - [Architecture](#architecture)
 - [Database Schema](#database-schema)
+- [Repository Implementations](#repository-implementations)
 - [API Reference](#api-reference)
 - [WebSocket Events](#websocket-events)
 - [Getting Started](#getting-started)
+- [Running the App](#running-the-app)
+- [Testing](#testing)
+- [Security Notes](#security-notes)
 - [Project Structure](#project-structure)
 - [Design Decisions](#design-decisions)
 
@@ -21,7 +25,11 @@ A full-stack real-time messaging application built with Node.js, Express, MySQL,
 
 ## Overview
 
-UChat is a lightweight, extensible chat backend designed with clear separation of concerns across Repository, Service, and Route layers. The application handles real-time communication via Socket.IO, with the WebSocket layer sharing the same session middleware as the HTTP layer to maintain a unified authentication context.
+UChat is a lightweight, extensible real-time chat application designed with clear separation of concerns across Repository, Service, and Route layers.
+
+The backend shares the same session middleware between the HTTP and WebSocket layers, allowing both protocols to operate under the same authentication context.
+
+Unlike previous versions, the project now separates the frontend and backend into independent directories. This layout makes it easier to deploy the frontend and backend independently while preserving the same backend architecture.
 
 > ⚠️ **Note:** Group chat functionality is currently only a structural placeholder (stub). The core logic is not fully implemented yet and exists mainly as a foundation for future development.
 
@@ -29,15 +37,16 @@ UChat is a lightweight, extensible chat backend designed with clear separation o
 
 ## Features
 
-- **Session-based authentication** — login, register, and logout with `express-session` and `bcrypt` password hashing
+- **Session-based authentication** — login, register, and logout with `express-session` and `bcrypt`
 - **P2P chat rooms** — fully functional one-on-one conversations
 - **Group chat (stub)** — structure exists but not fully implemented
 - **Real-time messaging** — messages, edits, and deletions are broadcast instantly via Socket.IO
-- **Real-time typing indicator (aggressive)** — broadcasts actual typing content, giving a "preview" of what the other user is writing
-- **Message history** — paginated message retrieval with `limit` and `offset`
-- **User search** — fuzzy username lookup using SQL `LIKE` queries
-- **Authorization guards** — route-level and socket-level middleware ensure only authenticated participants can access rooms
-- **Auto-cleanup** — chat rooms are deleted when no longer relevant
+- **Real-time typing indicator (aggressive)** — broadcasts actual typing content
+- **Message history** — paginated retrieval using `limit` and `offset`
+- **User search** — fuzzy username lookup
+- **Authorization guards** — HTTP and Socket.IO middleware
+- **Automatic room cleanup** when no participants remain
+- **Interchangeable repository layer** supporting PostgreSQL and MySQL
 
 ---
 
@@ -45,25 +54,38 @@ UChat is a lightweight, extensible chat backend designed with clear separation o
 
 | Layer | Technology |
 |---|---|
+| Frontend | HTML, CSS, Vanilla JavaScript |
 | Runtime | Node.js |
 | HTTP Framework | Express.js |
 | Real-Time | Socket.IO |
-| Database | MySQL 2 |
+| Database | PostgreSQL (Supabase) |
 | Authentication | express-session + bcrypt |
 
 ---
 
 ## Architecture
 
-The server follows a three-layer architecture:
+The backend follows a three-layer architecture:
 
 ```
-Route Layer      →  Handles HTTP/WebSocket I/O, delegates to services
-Service Layer    →  Encapsulates business logic and validation
-Repository Layer →  Owns all SQL queries; returns plain objects
+Route Layer      → Handles HTTP/WebSocket I/O
+Service Layer    → Business logic & validation
+Repository Layer → Database abstraction
 ```
 
-Routes stay clean, services handle logic, repositories deal with SQL.
+Deployment architecture:
+
+```
+Frontend (Static HTML/CSS/JS)
+            │
+            ▼
+Backend (Express + Socket.IO)
+            │
+            ▼
+PostgreSQL (Supabase)
+```
+
+This separation allows the frontend and backend to be deployed independently.
 
 ---
 
@@ -71,18 +93,41 @@ Routes stay clean, services handle logic, repositories deal with SQL.
 
 Core tables:
 
-- `users` — credentials
-- `chat_rooms` — room metadata (`type`: `P2P` | `GROUP`)
-- `chat_participants` — join table
-- `chat_messages` — message storage
+- `users`
+- `chat_rooms`
+- `chat_participants`
+- `chat_messages`
 
-A correlated subquery is used to fetch the last message per room efficiently.
+A correlated subquery is used to efficiently retrieve the latest message for each room.
+
+The project currently provides two SQL schemas:
+
+- `backend/pg_schema.sql` (default)
+- `backend/schema.sql` (legacy MySQL)
+
+---
+
+## Repository Implementations
+
+The repository layer currently provides two interchangeable implementations:
+
+```
+repositories/
+├── mysql/
+└── postgresql/
+```
+
+Both implementations expose the same interface, allowing the backend to switch database engines simply by changing the imported repository implementation.
+
+The PostgreSQL implementation is now the default.
+
+> Future versions may replace this approach with an ORM.
 
 ---
 
 ## API Reference
 
-> All endpoints require session unless stated otherwise.
+> All endpoints require a valid session unless stated otherwise.
 
 ### Auth — `/auth`
 
@@ -91,14 +136,14 @@ A correlated subquery is used to fetch the last message per room efficiently.
 | `POST` | `/auth/login` | Login |
 | `POST` | `/auth/register` | Register |
 | `POST` | `/auth/logout` | Logout |
-| `GET` | `/auth/me` | Current user |
+| `GET` | `/auth/me` | Current authenticated user |
 
 ### Chats — `/chats`
 
 | Method | Endpoint | Description |
 |---|---|---|
-| `GET` | `/chats` | List chats |
-| `POST` | `/chats` | Create chat |
+| `GET` | `/chats` | List all user chats |
+| `POST` | `/chats` | Create new chat |
 | `GET` | `/chats/:chatId` | Chat detail |
 | `DELETE` | `/chats/:chatId` | Leave chat |
 | `GET` | `/chats/:chatId/messages` | Message history |
@@ -117,7 +162,7 @@ A correlated subquery is used to fetch the last message per room efficiently.
 |---|---|---|
 | `GET` | `/users/me` | Current user |
 | `GET` | `/users?search=...` | Search users |
-| `GET` | `/users/:id` | Get user |
+| `GET` | `/users/:id` | User profile |
 
 ---
 
@@ -127,8 +172,8 @@ A correlated subquery is used to fetch the last message per room efficiently.
 
 | Event | Description |
 |---|---|
-| `chat:join` | Join room |
-| `chat:leave` | Leave room |
+| `chat:join` | Join chat room |
+| `chat:leave` | Leave chat room |
 | `chat:typing` | Send typing content |
 | `chat:stopTyping` | Stop typing |
 
@@ -139,7 +184,7 @@ A correlated subquery is used to fetch the last message per room efficiently.
 | `message:new` | New message |
 | `message:updated` | Edited message |
 | `message:deleted` | Deleted message |
-| `chat:typing` | Other user typing (with content) |
+| `chat:typing` | Typing preview |
 | `chat:stopTyping` | Stop typing |
 
 ---
@@ -149,17 +194,18 @@ A correlated subquery is used to fetch the last message per room efficiently.
 ### Prerequisites
 
 - Node.js ≥ 18
-- MySQL running locally
+- PostgreSQL (or Supabase)
 
 ### Installation
 
 ```bash
 git clone https://github.com/UniVerse2009/uchat-web-app-.git
-cd uchat
+
+cd uchat/backend
 
 npm install
 
-mysql -u root -p < schema.sql
+psql < pg_schema.sql
 
 node server.js
 ```
@@ -168,54 +214,126 @@ node server.js
 
 ## Running the App
 
-When running `node server.js`, the server will:
+The project now consists of two independent applications.
 
-- Start the API at `http://0.0.0.0:3000`
-- Serve frontend files via:
-  - `/public/login.html`
-  - `/public/chat.html`
+### Backend
 
-So the project includes a minimal frontend that is directly accessible from the same server.
+The backend exposes:
+
+- REST API
+- Socket.IO server
+- Authentication
+- Business logic
+- Repository layer
+
+Run from:
+
+```
+backend/
+```
+
+### Frontend
+
+The frontend contains static assets:
+
+- HTML
+- CSS
+- Vanilla JavaScript
+
+located under:
+
+```
+frontend/
+```
+
+The frontend can be served by any static hosting provider while the backend runs independently.
 
 ---
 
-## ⚠️ Security Notes
+## Testing
 
-- Database credentials are hardcoded in `database.js`
-- Session secret has a hardcoded fallback in `config/session.js`
-- This setup is **not safe for production**
+The backend includes a small collection of tests under:
 
-Use environment variables properly if this project is ever deployed.
+```
+backend/tests/
+```
+
+Current tests include:
+
+- Validation tests
+- Security tests
+- User flow tests
+
+Some services also include service-level test files alongside their implementations.
+
+---
+
+## Security Notes
+
+- Database credentials should be supplied through environment variables.
+- Session secrets should never be hardcoded.
+- Production deployments should always use HTTPS and secure cookies.
+- Repository implementations intentionally isolate SQL from business logic to simplify future migrations.
 
 ---
 
 ## Project Structure
 
 ```
-├── server.js
-├── database.js
-├── config/
-├── repositories/
-├── services/
-├── routes/
-├── middlewares/
+.
+├── backend
+│   ├── config
+│   ├── middlewares
+│   ├── repositories
+│   │   ├── mysql
+│   │   └── postgresql
+│   ├── routes
+│   ├── schemas
+│   ├── services
+│   ├── tests
+│   ├── server.js
+│   ├── schema.sql
+│   └── pg_schema.sql
+│
+├── frontend
+│   ├── chat.html
+│   ├── login.html
+│   ├── *.css
+│   ├── *.js
+│   └── splash
+│
+├── dist
+├── bundler.js
+└── README.md
 ```
 
 ---
 
 ## Design Decisions
 
-**Why session-based auth instead of JWT?**  
-Session cookies simplify Socket.IO authentication since both HTTP and WebSocket share the same middleware.
+**Why session-based authentication instead of JWT?**
 
-**Why MySQL?**  
-Chat systems are inherently relational. SQL fits naturally for users, rooms, and messages.
+Session cookies simplify Socket.IO authentication because HTTP and WebSocket share the same middleware.
 
-**Why typing indicator sends content?**  
-Instead of a generic "user is typing" signal, this app sends actual draft content in real-time. This creates a more interactive (and slightly intrusive) chat experience.
+**Why PostgreSQL?**
 
-**Why group chat is incomplete?**  
-It exists as a structural placeholder so the system can be extended cleanly without redesigning the core architecture later.
+PostgreSQL is now the default database backend due to its richer SQL features and cloud-hosted compatibility with Supabase.
+
+**Why keep MySQL repositories?**
+
+Maintaining both implementations makes database migration easier while preserving the same repository interface. The active implementation can be changed by replacing the imported repository module.
+
+**Why Repository Layer?**
+
+Keeping SQL isolated inside repositories allows the Service layer to remain database-agnostic and simplifies future migration to an ORM.
+
+**Why typing indicator sends content?**
+
+Instead of broadcasting only a generic typing notification, UChat sends the user's current draft to provide a more interactive (and slightly intrusive) messaging experience.
+
+**Why group chat is incomplete?**
+
+The structural foundation already exists, allowing future expansion without redesigning the overall architecture.
 
 ---
 
