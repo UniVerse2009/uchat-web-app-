@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Memuat...</title>
+
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+	<style>
+	* {
+		margin: 0;
+		padding: 0;
+		box-sizing: border-box;
+	}
+
+	body {
+		font-family: 'Inter', sans-serif;
+		background: #f4f7fb;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		min-height: 100vh;
+	}
+
+	.auth-container {
+		width: 100%;
+		max-width: 380px;
+		padding: 20px;
+	}
+
+	.auth-card {
+		background: #ffffff;
+		padding: 40px 35px;
+		border-radius: 16px;
+		box-shadow: 0 15px 35px rgba(10, 31, 68, 0.08);
+		text-align: center;
+	}
+
+	.logo {
+		width: 90px;
+		display: block;
+		margin: 0 auto 20px;
+	}
+
+	h2 {
+		margin-bottom: 25px;
+		color: #0A1F44;
+		font-weight: 600;
+	}
+
+	.spinner {
+		width: 42px;
+		height: 42px;
+		border: 4px solid #dcdfe6;
+		border-top: 4px solid #0A1F44;
+		border-radius: 50%;
+		animation: spin 1s linear infinite;
+		margin: 0 auto 20px;
+	}
+
+	@keyframes spin {
+		to {
+			transform: rotate(360deg);
+		}
+	}
+
+	.loading-text {
+		font-size: 14px;
+		color: #555;
+	}
+</style>
+
+	<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+</head>
+<body>
+
+	<div class="auth-container">
+		<div class="auth-card splash-card">
+			<img src="logo.png" class="logo" alt="Logo">
+			<h2>Memuat Aplikasi</h2>
+			<div class="spinner"></div>
+			<p class="loading-text">Menyiapkan beberapa hal...</p>
+		</div>
+	</div>
+
+	<script>
+		const TARGET_REDIRECT = "https://heights-disciplines-calendar-chorus.trycloudflare.com/public/chat.html";
+function waitForSocket() {
+  return new Promise((resolve) => {
+    if (window.io) return resolve();
+    const interval = setInterval(() => {
+      if (window.io) {
+        clearInterval(interval);
+        resolve();
+      }
+    }, 50);
+  });
+}
+
+function waitForFonts() {
+  if (document.fonts && document.fonts.ready) {
+    return document.fonts.ready;
+  }
+  return Promise.resolve();
+}
+
+(async function init() {
+  await waitForSocket();
+  await waitForFonts();
+  
+  setTimeout(() => {
+    // Pakai replace supaya splash tidak masuk history back
+    window.location.replace(TARGET_REDIRECT);
+  }, 2000);
+})();
+	</script>
+</body>
+</html>
